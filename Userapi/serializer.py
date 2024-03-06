@@ -57,4 +57,8 @@ class PaymentSerializer(serializers.ModelSerializer):
 class CancellationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Cancellation
-        fields = '__all__'        
+        fields = '__all__'   
+
+
+class TrainStatusSerializer(serializers.Serializer):
+    train_number = serializers.IntegerField()     

@@ -5,10 +5,14 @@ from rest_framework.decorators import action
 from rest_framework import authentication
 from rest_framework import permissions
 from rest_framework.viewsets import ViewSet,ModelViewSet
-from Userapi.serializer import CustomerSerializer,TrainSerializer,TicketbookingSerializer,FeedbackSerializer,ProfileSerializer,PaymentSerializer,CancellationSerializer
+from Userapi.serializer import CustomerSerializer,TrainSerializer,TicketbookingSerializer,FeedbackSerializer,ProfileSerializer,PaymentSerializer,CancellationSerializer,TrainStatusSerializer
 from Stationapi.models import Train,Booking,Customer,Cancellation
 from django.contrib.auth import logout
 from rest_framework import status
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+
+
 
 
 
@@ -97,28 +101,7 @@ class TrainView(ViewSet):
         else:
             return 0
 
-
-    @action(methods=["post"],detail=True)
-    def get_train_livestatus(self,request,*args,**kwargs):
-        try:
-            id = kwargs.get("pk")
-            train_obj = Train.objects.get(id=id)
-            train_number = train_obj.train_number
-            api_key="af2642c865msh207f12c0e4332a2p1e6979jsnf9ee5c55860d"
-
-            url = f"https://indianrailapi.com/api/v2/livetrainstatus/apikey/{api_key}/trainnumber/{train_number}/date/today"
-            response = requests.get(url)
-            if response.status_code == 200:
-                data = response.json()
-                return Response(data)
-            else:
-                return Response({"error": "Failed to fetch live train status"}, status=response.status_code)
-        except Train.DoesNotExist:
-            return Response({"error": "Train not found"}, status=404)
-        except Exception as e:
-            return Response({"error": str(e)}, status=500)
-
-
+    
     @action(methods=["post"],detail=True)
     def add_feedback(self,request,*args,**kwargs):
         id=kwargs.get("pk")
@@ -178,3 +161,63 @@ class BookTicketView(ViewSet):
 def sign_out(request):
     logout(request)
     return render("signin")
+
+
+# @csrf_exempt
+# def get_live_train_status(train_number):
+#     url = "https://irctc1.p.rapidapi.com/api/v1/liveTrainStatus"
+        
+#     querystring = {
+#         "train_no": train_number,
+#     }
+
+
+#     headers = {
+#         "X-RapidAPI-Key": "af2642c865msh207f12c0e4332a2p1e6979jsnf9ee5c55860d",
+#         "X-RapidAPI-Host": "irctc1.p.rapidapi.com"
+#     }
+
+#     response = requests.get(url, headers=headers, params=querystring)
+
+#     return response.json()
+
+
+# class TrainStatusAPIView(APIView):
+#     def post(self, request):
+#         serializer = TrainStatusSerializer(data=request.data)
+#         if serializer.is_valid():
+#             train_number = serializer.validated_data.get('train_number')
+#             api_key = 'af2642c865msh207f12c0e4332a2p1e6979jsnf9ee5c55860d'
+#             url = f'https://example.com/api/train_status/{train_number}?key={api_key}'
+#             response = requests.get(url)
+#             if response.status_code == 200:
+#                 data = response.json()
+#                 return Response(data)
+#             else:
+#                 return Response({"error": "Error fetching data"}, status=response.status_code)
+#         else:
+#             return Response(serializer.errors, status=400)
+
+
+def search_trains_view(request):
+    if request.method == 'POST':
+        search_term = request.POST.get('search')
+        if search_term:
+            url = "https://trains.p.rapidapi.com/"
+            payload = {"search": search_term}
+            headers = {
+                "content-type": "application/json",
+                "X-RapidAPI-Key": "ecaa2bd736msh28cbeae8e944acfp161787jsncfbeabcf9622",
+                "X-RapidAPI-Host": "trains.p.rapidapi.com"
+            }
+            try:
+                response = requests.post(url, json=payload, headers=headers)
+                response.raise_for_status()  # Raise an exception for bad status codes
+                return JsonResponse(response.json(), safe=False)
+            except requests.exceptions.RequestException as e:
+                return JsonResponse({"error": str(e)}, status=500)
+        else:
+            return JsonResponse({"error": "Search term is missing"}, status=400)
+    else:
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+        
