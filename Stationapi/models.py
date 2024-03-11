@@ -48,31 +48,8 @@ class Train(models.Model):
     def __str__(self):
         return self.train_number
     
-    @property
-    def routes_start(self):
-        qs=self.starting_routes.all()
-        return qs
-    
-    @property
-    def routes_end(self):
-        return self.ending_routes.all()
-    
-    @property
-    def route_stop(self):
-        return self.route_stops.all()
-        
- 
-    
-class Route(models.Model):
-    route_id = models.CharField(max_length=20)
-    starting_station = models.ForeignKey(Station, related_name='starting_routes', on_delete=models.CASCADE)
-    ending_station = models.ForeignKey(Station, related_name='ending_routes', on_delete=models.CASCADE)
-    distance = models.DecimalField(max_digits=8, decimal_places=2)
-    intermediate_stops = models.ManyToManyField(Station, related_name='route_stops', blank=True)
-
-    def _str_(self):
-        return f"{self.starting_station} to {self.ending_station}"
-        
+   
+   
 class Booking(models.Model):
     train_number= models.ForeignKey(Train, on_delete=models.CASCADE)
     user= models.ForeignKey(Customer, on_delete=models.CASCADE)
@@ -106,7 +83,7 @@ class Payment(models.Model):
         ('completed','completed'),
         ('failed','failed'),
     )
-    status = models.CharField(max_length=20, choices=options,default='Pending')
+    status = models.CharField(max_length=20, choices=options,default='completed')
 
            
 class Refund(models.Model):

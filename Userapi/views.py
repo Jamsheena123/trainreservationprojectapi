@@ -6,7 +6,7 @@ from rest_framework import authentication
 from rest_framework import permissions
 from rest_framework.viewsets import ViewSet,ModelViewSet
 from Userapi.serializer import CustomerSerializer,TrainSerializer,TicketbookingSerializer,FeedbackSerializer,ProfileSerializer,PaymentSerializer,CancellationSerializer,TrainStatusSerializer
-from Stationapi.models import Train,Booking,Customer,Cancellation
+from Stationapi.models import Train,Booking,Customer,Cancellation,Payment,Refund
 from django.contrib.auth import logout
 from rest_framework import status
 from django.views.decorators.csrf import csrf_exempt
@@ -118,13 +118,25 @@ class BookTicketView(ViewSet):
     permission_classes=[permissions.IsAuthenticated]
     serializer_class=TicketbookingSerializer      
     
-    def list(self,request,*args,**kwargs):
-        user=request.user.id
-        user_obj=Customer.objects.get(id=user)
-        qs=Booking.objects.get(user=user_obj)
-        serializer=TicketbookingSerializer(qs)
-        return Response(data=serializer.data)  
+     
     
+    def list(self, request, *args, **kwargs):
+        user_id = request.user.id
+        try:
+            user_obj = Customer.objects.get(id=user_id)
+            bookings = Booking.objects.filter(user=user_obj)
+            if bookings.exists():
+                serializer = TicketbookingSerializer(bookings, many=True)
+                return Response(serializer.data)
+            else:
+                return Response({"message": "No bookings found for the user"}, status=status.HTTP_404_NOT_FOUND)
+        except Customer.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Booking.MultipleObjectsReturned:
+            return Response({"error": "Multiple bookings found for the same user"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
       
     def destroy(self, request, *args, **kwargs):
         try:
@@ -137,7 +149,12 @@ class BookTicketView(ViewSet):
             return Response({"error": "Booking not found"}, status=404)
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+        
     
+
+
+
+
     @action(methods=['post'],detail=True)
     def add_payment(self,request,*args,**kwargs):
         id=kwargs.get("pk")
@@ -146,6 +163,7 @@ class BookTicketView(ViewSet):
         booking_instance = Booking.objects.get(id=id)
         if booking_instance.booking_status!="cancelled":
             amount=booking_instance.booking_amount
+            request.data["options"] = "ocmpleted" 
             serializer=PaymentSerializer(data=request.data)
             if serializer.is_valid():
                 serializer.save(customer=user,amount=amount,booking=booking_instance)
@@ -154,49 +172,36 @@ class BookTicketView(ViewSet):
         else:
             return Response({"error": "Booking already cancelled"}, status=404)
 
-
-
-
+    @action(methods=['post'], detail=True)
+    def refund_ticket(self, request, *args, **kwargs):
+        try:
+            booking_id = kwargs.get("pk")
+            booking_instance = Booking.objects.get(id=booking_id)
+            if booking_instance.booking_status == "Completed":
+                payment = Payment.objects.filter(booking=booking_instance).first()
+                if payment: 
+                    # Perform the refund
+                    refund_amount = payment.amount
+                    refund = Refund.objects.create(
+                        status='pending',
+                        booking=booking_instance,
+                        customer=request.user.customer,
+                        amount=refund_amount
+                    )
+                    # Update booking status
+                    booking_instance.booking_status = "Cancelled"
+                    booking_instance.save()
+                    return Response({"message": "Refund requested successfully"}, status=201)
+                else:
+                    return Response({"error": "Payment not found for this booking"}, status=400)
+            else:
+                return Response({"error": "Booking is not eligible for refund"}, status=400)
+        except Booking.DoesNotExist:
+            return Response({"error": "Booking not found"}, status=404)
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
     
-def sign_out(request):
-    logout(request)
-    return render("signin")
 
-
-# @csrf_exempt
-# def get_live_train_status(train_number):
-#     url = "https://irctc1.p.rapidapi.com/api/v1/liveTrainStatus"
-        
-#     querystring = {
-#         "train_no": train_number,
-#     }
-
-
-#     headers = {
-#         "X-RapidAPI-Key": "af2642c865msh207f12c0e4332a2p1e6979jsnf9ee5c55860d",
-#         "X-RapidAPI-Host": "irctc1.p.rapidapi.com"
-#     }
-
-#     response = requests.get(url, headers=headers, params=querystring)
-
-#     return response.json()
-
-
-# class TrainStatusAPIView(APIView):
-#     def post(self, request):
-#         serializer = TrainStatusSerializer(data=request.data)
-#         if serializer.is_valid():
-#             train_number = serializer.validated_data.get('train_number')
-#             api_key = 'af2642c865msh207f12c0e4332a2p1e6979jsnf9ee5c55860d'
-#             url = f'https://example.com/api/train_status/{train_number}?key={api_key}'
-#             response = requests.get(url)
-#             if response.status_code == 200:
-#                 data = response.json()
-#                 return Response(data)
-#             else:
-#                 return Response({"error": "Error fetching data"}, status=response.status_code)
-#         else:
-#             return Response(serializer.errors, status=400)
 
 
 def search_trains_view(request):
@@ -221,3 +226,7 @@ def search_trains_view(request):
     else:
         return JsonResponse({"error": "Method not allowed"}, status=405)
         
+    
+def sign_out(request):
+    logout(request)
+    return render("signin")

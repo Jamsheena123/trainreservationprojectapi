@@ -1,4 +1,4 @@
-from Stationapi.models import Customer,Train,Booking,Feedback,Payment,Cancellation
+from Stationapi.models import Customer,Train,Booking,Feedback,Payment,Cancellation,Refund
 from rest_framework import serializers
 
 class CustomerSerializer(serializers.ModelSerializer):
@@ -61,4 +61,15 @@ class CancellationSerializer(serializers.ModelSerializer):
 
 
 class TrainStatusSerializer(serializers.Serializer):
-    train_number = serializers.IntegerField()     
+    train_number = serializers.IntegerField()  
+
+
+class RefundSerializer(serializers.Serializer):
+    class Meta:
+        model = Refund
+        fields = '__all__' 
+
+          
+
+
+      
