@@ -41,6 +41,7 @@ class Train(models.Model):
     destination=models.CharField(max_length=200)
     departure_time=models.DateTimeField()
     arrival_time=models.DateTimeField() 
+    seat_capacity=models.PositiveIntegerField(default=70)
     amount_nonac = models.PositiveIntegerField(default=0)
     amount_ac = models.PositiveIntegerField(default=0)
     amount_sleeper = models.PositiveIntegerField(default=0)
@@ -63,15 +64,13 @@ class Booking(models.Model):
     reserved_seats = models.IntegerField()
     reservation_date = models.DateTimeField(auto_now_add=True)
     booking_amount=models.PositiveIntegerField()
+    seat_no=models.PositiveIntegerField(null=True,unique=True)
     choice=[
         ('Pending', 'Pending'),
         ('Completed', 'Completed'),
         ('Cancelled','Cancelled')
     ]
     booking_status=models.CharField(max_length=100,choices=choice,default="Pending")
-
-
-
 
 class Payment(models.Model):
     booking=models.OneToOneField(Booking,on_delete=models.CASCADE,unique=True,null=True)

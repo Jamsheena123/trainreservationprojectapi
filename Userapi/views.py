@@ -84,6 +84,7 @@ class TrainView(ViewSet):
             reserved_seats = serializer.validated_data.get('reserved_seats')
             amount = self.calculate_amount(train_obj, seat_type, reserved_seats)
             if amount > 0:
+
                 serializer.save(train_number=train_obj, user=user_obj, booking_amount=amount)
                 return Response(data=serializer.data)
             else:
@@ -161,11 +162,13 @@ class BookTicketView(ViewSet):
         user=request.user.customer
         id = kwargs.get("pk")
         booking_instance = Booking.objects.get(id=id)
-        if booking_instance.booking_status!="cancelled":
+        if booking_instance.booking_status!="Cancelled":
             amount=booking_instance.booking_amount
-            request.data["options"] = "ocmpleted" 
+            request.data["status"] = "completed" 
             serializer=PaymentSerializer(data=request.data)
             if serializer.is_valid():
+                booking_instance.booking_status="Completed"
+                booking_instance.save()
                 serializer.save(customer=user,amount=amount,booking=booking_instance)
                 return Response(data=serializer.data)
             return Response(data=serializer.errors)
@@ -177,33 +180,30 @@ class BookTicketView(ViewSet):
         try:
             booking_id = kwargs.get("pk")
             booking_instance = Booking.objects.get(id=booking_id)
-            if booking_instance.booking_status == "Completed":
-                payment = Payment.objects.filter(booking=booking_instance).first()
-                if payment: 
-                    # Perform the refund
-                    refund_amount = payment.amount
-                    refund = Refund.objects.create(
-                        status='pending',
-                        booking=booking_instance,
-                        customer=request.user.customer,
-                        amount=refund_amount
-                    )
-                    # Update booking status
-                    booking_instance.booking_status = "Cancelled"
-                    booking_instance.save()
-                    return Response({"message": "Refund requested successfully"}, status=201)
-                else:
-                    return Response({"error": "Payment not found for this booking"}, status=400)
+
+            if booking_instance.booking_status == "Cancelled":
+                # Check if refund already exists for this booking
+                if Refund.objects.filter(booking=booking_instance).exists():
+                    return Response({"error": "Refund already processed for this booking"}, status=status.HTTP_400_BAD_REQUEST)
+                
+                # Create a refund instance
+                refund_amount = booking_instance.booking_amount
+                refund = Refund.objects.create(
+                    status='pending',
+                    booking=booking_instance,
+                    customer=booking_instance.user,
+                    amount=refund_amount
+                )
+
+                return Response({"message": "Refund initiated successfully", "refund_id": refund.id})
             else:
-                return Response({"error": "Booking is not eligible for refund"}, status=400)
+                return Response({"error": "Booking is not cancelled, refund cannot be processed"}, status=status.HTTP_400_BAD_REQUEST)
         except Booking.DoesNotExist:
-            return Response({"error": "Booking not found"}, status=404)
+            return Response({"error": "Booking not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            return Response({"error": str(e)}, status=500)
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
     
-
-
-
 def search_trains_view(request):
     if request.method == 'POST':
         search_term = request.POST.get('search')
