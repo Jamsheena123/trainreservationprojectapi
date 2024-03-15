@@ -1,6 +1,6 @@
 from django.shortcuts import render
-from Stationapi.models import Customer,Station,Train,Feedback
-from Stationapi.serializer import StationSerializer,TrainSerializer,FeedbackSerializer
+from Stationapi.models import Customer,Station,Train,Feedback,TrainCapacity
+from Stationapi.serializer import StationSerializer,TrainSerializer,FeedbackSerializer,TrainCapacitySerializer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ViewSet
@@ -52,9 +52,7 @@ class TrainView(ViewSet):
             return Response(data=serializer.data)
         else:
             return Response(data=serializer.errors)
-        
-  
-        
+   
     def destroy(self, request, *args, **kwargs):
         id=kwargs.get("pk")
         instance=Train.objects.get(id=id)
@@ -63,6 +61,17 @@ class TrainView(ViewSet):
             return Response(data={"msg":"deleted"})
         else:
             return Response(data={"message":"permission denied"})
+        
+
+    @action(methods=["post"],detail=True)
+    def add_capacity(self,request,*args,**kwargs):
+        id=kwargs.get("pk")
+        train_obj=Train.objects.get(id=id) 
+        serializer=TrainCapacitySerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(train=train_obj)
+            return Response(data=serializer.data)
+        return Response(data=serializer.errors)
         
 
     @action(methods=["get"],detail=True)  
@@ -74,7 +83,14 @@ class TrainView(ViewSet):
         return Response(data=serializer.data)
 
     
-    
+class TrainCapacityView(ViewSet):
+    authentication_classes=[authentication.TokenAuthentication]
+    permission_classes=[permissions.IsAuthenticated]
+        
+    def list(self,request,*args,**kwargs):
+        qs=TrainCapacity.objects.all()
+        serializer=TrainCapacitySerializer(qs,many=True)
+        return Response(data=serializer.data)  
     
 
 

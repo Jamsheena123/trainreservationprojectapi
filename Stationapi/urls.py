@@ -5,6 +5,7 @@ from rest_framework.routers import DefaultRouter
 
 router=DefaultRouter()
 router.register("train",views.TrainView,basename="trains")
+router.register("traincapacity",views.TrainCapacityView,basename="train_seats")
 
 
 urlpatterns=[

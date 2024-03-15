@@ -1,5 +1,5 @@
 from  rest_framework import serializers
-from Stationapi.models import Customer,Station,Train,Booking,Feedback
+from Stationapi.models import Customer,Station,Train,Booking,Feedback,TrainCapacity
 
 class StationSerializer(serializers.ModelSerializer):
     id=serializers.CharField(read_only=True)
@@ -27,4 +27,9 @@ class FeedbackSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class TrainCapacitySerializer(serializers.ModelSerializer):
+    train=serializers.CharField(read_only=True)
+    class Meta:
+        model = TrainCapacity
+        fields = "__all__"
 

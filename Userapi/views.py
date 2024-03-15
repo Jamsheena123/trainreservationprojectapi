@@ -6,11 +6,14 @@ from rest_framework import authentication
 from rest_framework import permissions
 from rest_framework.viewsets import ViewSet,ModelViewSet
 from Userapi.serializer import CustomerSerializer,TrainSerializer,TicketbookingSerializer,FeedbackSerializer,ProfileSerializer,PaymentSerializer,CancellationSerializer,TrainStatusSerializer
-from Stationapi.models import Train,Booking,Customer,Cancellation,Payment,Refund
+from Stationapi.models import Train,Booking,Customer,Cancellation,Payment,Refund,TrainCapacity
 from django.contrib.auth import logout
 from rest_framework import status
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
+from django.db.models import Sum
+from datetime import datetime
+
 
 
 
@@ -78,19 +81,40 @@ class TrainView(ViewSet):
         user_id = request.user.id
         user_obj = Customer.objects.get(id=user_id)
         train_obj = Train.objects.get(id=train_id)
-        
+
         if serializer.is_valid():
             seat_type = serializer.validated_data.get('seat_type')
             reserved_seats = serializer.validated_data.get('reserved_seats')
-            amount = self.calculate_amount(train_obj, seat_type, reserved_seats)
-            if amount > 0:
 
-                serializer.save(train_number=train_obj, user=user_obj, booking_amount=amount)
-                return Response(data=serializer.data)
+            # Check if requested number of seats are available
+            if self.check_available_seats(train_obj, seat_type, reserved_seats):
+                amount = self.calculate_amount(train_obj, seat_type, reserved_seats)
+                if amount > 0:
+                    # Deduct reserved seats from capacity
+                    self.update_seat_capacity(train_obj, seat_type, reserved_seats)
+                    serializer.save(train_number=train_obj, user=user_obj, booking_amount=amount)
+                    return Response(data=serializer.data)
+                else:
+                    return Response({"error": "Invalid seat type or reserved seats."}, status=status.HTTP_400_BAD_REQUEST)
             else:
-                return Response({"error": "Invalid seat type or reserved seats."}, status=400)
+                return Response({"error": "Requested seats are not available."}, status=status.HTTP_400_BAD_REQUEST)
         else:
-            return Response(data=serializer.errors)
+            return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def check_available_seats(self, train, seat_type, reserved_seats):
+        try:
+            train_capacity = TrainCapacity.objects.get(train=train, type=seat_type)
+            return train_capacity.available_seats >= reserved_seats
+        except TrainCapacity.DoesNotExist:
+            return False
+
+    def update_seat_capacity(self, train, seat_type, reserved_seats):
+        try:
+            train_capacity = TrainCapacity.objects.get(train=train, type=seat_type)
+            train_capacity.available_seats -= reserved_seats
+            train_capacity.save()
+        except TrainCapacity.DoesNotExist:
+            pass
 
     def calculate_amount(self, train, seat_type, reserved_seats):
         if seat_type == 'Non AC':
@@ -101,6 +125,16 @@ class TrainView(ViewSet):
             return train.amount_sleeper * reserved_seats
         else:
             return 0
+        
+    
+          
+        
+    # @action(method=["post"],detail=True)    
+    # def total_capacity(self, request):
+    #     train_id = request.query_params.get("train_id")
+    #     train_obj = Train.objects.get(id=train_id)
+    #     total_capacity = TrainCapacity.objects.filter(train=train_obj).aggregate(total_capacity=Sum('available_seats'))
+    #     return Response({"total_available_seats": total_capacity['total_capacity']})  
 
     
     @action(methods=["post"],detail=True)
@@ -118,7 +152,6 @@ class BookTicketView(ViewSet):
     authentication_classes=[authentication.TokenAuthentication]
     permission_classes=[permissions.IsAuthenticated]
     serializer_class=TicketbookingSerializer      
-    
      
     
     def list(self, request, *args, **kwargs):
@@ -150,11 +183,6 @@ class BookTicketView(ViewSet):
             return Response({"error": "Booking not found"}, status=404)
         except Exception as e:
             return Response({"error": str(e)}, status=500)
-        
-    
-
-
-
 
     @action(methods=['post'],detail=True)
     def add_payment(self,request,*args,**kwargs):
@@ -186,7 +214,6 @@ class BookTicketView(ViewSet):
                 if Refund.objects.filter(booking=booking_instance).exists():
                     return Response({"error": "Refund already processed for this booking"}, status=status.HTTP_400_BAD_REQUEST)
                 
-                # Create a refund instance
                 refund_amount = booking_instance.booking_amount
                 refund = Refund.objects.create(
                     status='pending',
@@ -195,7 +222,7 @@ class BookTicketView(ViewSet):
                     amount=refund_amount
                 )
 
-                return Response({"message": "Refund initiated successfully", "refund_id": refund.id})
+                return Response({"message": "Refund initiated successfully", "refund_id": refund.id, 'customer_name': refund.customer.name, 'refund_amount': refund.amount, 'booking_id': refund.booking.id})
             else:
                 return Response({"error": "Booking is not cancelled, refund cannot be processed"}, status=status.HTTP_400_BAD_REQUEST)
         except Booking.DoesNotExist:
@@ -225,8 +252,37 @@ def search_trains_view(request):
             return JsonResponse({"error": "Search term is missing"}, status=400)
     else:
         return JsonResponse({"error": "Method not allowed"}, status=405)
-        
-    
-def sign_out(request):
-    logout(request)
-    return render("signin")
+
+
+
+def search_train(request):
+    if request.method == 'POST':
+        source = request.POST.get('source')
+        destination = request.POST.get('destination')
+        date_str = request.POST.get('date')
+        query = Train.objects.all()
+        if source:
+            query = query.filter(source=source)
+        if destination:
+            query = query.filter(destination=destination)
+        if date_str:
+            try:
+                date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                query = query.filter(departure_time__date=date)
+            except ValueError:
+                return JsonResponse({'error': 'Invalid date format. Please use YYYY-MM-DD.'}, status=400)
+        trains = query
+        train_list = []
+        for train in trains:
+            train_info = {
+                'train_name': train.train_name,
+                'train_number': train.train_number,
+                'departure_time': train.departure_time.strftime('%Y-%m-%d %H:%M:%S'),
+                'arrival_time': train.arrival_time.strftime('%Y-%m-%d %H:%M:%S'),
+                'amount_nonac': train.amount_nonac,
+                'amount_ac': train.amount_ac,
+                'amount_sleeper': train.amount_sleeper,
+            }
+            train_list.append(train_info)
+        return JsonResponse({'trains': train_list})
+    return JsonResponse({'error': 'Invalid request method'}, status=405)

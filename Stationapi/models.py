@@ -1,7 +1,4 @@
 from django.db import models
-
-# Create your models here.
-from django.db import models
 from django.contrib.auth.models import AbstractUser
 
 
@@ -41,7 +38,6 @@ class Train(models.Model):
     destination=models.CharField(max_length=200)
     departure_time=models.DateTimeField()
     arrival_time=models.DateTimeField() 
-    seat_capacity=models.PositiveIntegerField(default=70)
     amount_nonac = models.PositiveIntegerField(default=0)
     amount_ac = models.PositiveIntegerField(default=0)
     amount_sleeper = models.PositiveIntegerField(default=0)
@@ -49,8 +45,18 @@ class Train(models.Model):
     def __str__(self):
         return self.train_number
     
-   
-   
+
+class TrainCapacity(models.Model):
+    train= models.ForeignKey(Train, on_delete=models.CASCADE)
+    options=(
+        ('Non AC', 'Non AC'),
+        ('AC' ,'AC'),
+        ("Sleeper","Sleeper"),
+    )
+    type=models.CharField(max_length=100,choices=options)
+    available_seats=models.PositiveIntegerField(default=100)
+
+
 class Booking(models.Model):
     train_number= models.ForeignKey(Train, on_delete=models.CASCADE)
     user= models.ForeignKey(Customer, on_delete=models.CASCADE)
@@ -64,7 +70,6 @@ class Booking(models.Model):
     reserved_seats = models.IntegerField()
     reservation_date = models.DateTimeField(auto_now_add=True)
     booking_amount=models.PositiveIntegerField()
-    seat_no=models.PositiveIntegerField(null=True,unique=True)
     choice=[
         ('Pending', 'Pending'),
         ('Completed', 'Completed'),
@@ -99,7 +104,7 @@ class Refund(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
     booking = models.ForeignKey(Booking, on_delete=models.CASCADE)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
-    amount = models.ForeignKey(Payment,on_delete=models.CASCADE)
+    amount =models.PositiveIntegerField()
 
 
 class Cancellation(models.Model):
@@ -115,7 +120,6 @@ class Feedback(models.Model):
     train = models.ForeignKey(Train, on_delete=models.CASCADE)
     rating=models.PositiveIntegerField(validators=[MinValueValidator(1),MaxValueValidator(5)])
     comments = models.TextField()
-
 
 
 
