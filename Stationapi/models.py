@@ -41,7 +41,7 @@ class Train(models.Model):
     amount_nonac = models.PositiveIntegerField(default=0)
     amount_ac = models.PositiveIntegerField(default=0)
     amount_sleeper = models.PositiveIntegerField(default=0)
-
+ 
     def __str__(self):
         return self.train_number
     
@@ -51,7 +51,7 @@ class TrainCapacity(models.Model):
     options=(
         ('Non AC', 'Non AC'),
         ('AC' ,'AC'),
-        ("Sleeper","Sleeper"),
+        ("Sleep er","Sleeper"),
     )
     type=models.CharField(max_length=100,choices=options)
     available_seats=models.PositiveIntegerField(default=100)
