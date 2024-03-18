@@ -32,6 +32,7 @@ class Customer(CustomUser):
 
     
 class Train(models.Model):
+    station=models.ForeignKey(Station,on_delete=models.CASCADE,null=True)
     train_name=models.CharField(max_length=200,null=True)
     train_number=models.CharField(max_length=200)
     source=models.CharField(max_length=200)

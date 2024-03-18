@@ -15,9 +15,11 @@ class StationSerializer(serializers.ModelSerializer):
     
 
 class TrainSerializer(serializers.ModelSerializer):
+    id=serializers.CharField(read_only=True)
+    station=serializers.CharField(read_only=True)
     class Meta:
         model = Train
-        fields = ['id','train_name', 'train_number', 'source', 'destination', 'departure_time', 'arrival_time',"amount_nonac","amount_ac","amount_sleeper" ]      
+        fields = ['id','train_name', 'train_number', 'source', 'destination', 'departure_time', 'arrival_time',"amount_nonac","amount_ac","amount_sleeper","station" ]      
 
 
 

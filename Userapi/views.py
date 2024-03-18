@@ -5,7 +5,7 @@ from rest_framework.decorators import action
 from rest_framework import authentication
 from rest_framework import permissions
 from rest_framework.viewsets import ViewSet,ModelViewSet
-from Userapi.serializer import CustomerSerializer,TrainSerializer,TicketbookingSerializer,FeedbackSerializer,ProfileSerializer,PaymentSerializer,CancellationSerializer,TrainStatusSerializer
+from Userapi.serializer import CustomerSerializer,TrainSerializer,TicketbookingSerializer,FeedbackSerializer,ProfileSerializer,PaymentSerializer,CancellationSerializer,TrainStatusSerializer,TrainCapacitySerializer
 from Stationapi.models import Train,Booking,Customer,Cancellation,Payment,Refund,TrainCapacity
 from django.contrib.auth import logout
 from rest_framework import status
@@ -63,10 +63,14 @@ class TrainView(ViewSet):
     permission_classes=[permissions.IsAuthenticated]
     serializer_class = TrainSerializer
         
-    def list(self,request,*args,**kwargs):
-        qs=Train.objects.all()
-        serializer=TrainSerializer(qs,many=True)
-        return Response(data=serializer.data)
+    def list(self, request, *args, **kwargs):
+        qs = Train.objects.all()
+        serializer = TrainSerializer(qs, many=True)
+        # Add train capacity to each train in the response
+        for train_data in serializer.data:
+            train_capacity = Train.objects.filter(id=train_data['id']).values('traincapacity__type', 'traincapacity__available_seats')
+            train_data['train_capacity'] = train_capacity
+        return Response(serializer.data)
     
     def retrieve(self,request,*args,**kwargs):
         id=kwargs.get("pk")

@@ -1,5 +1,6 @@
-from Stationapi.models import Customer,Train,Booking,Feedback,Payment,Cancellation,Refund
+from Stationapi.models import Customer,Train,Booking,Feedback,Payment,Cancellation,Refund,TrainCapacity
 from rest_framework import serializers
+
 
 class CustomerSerializer(serializers.ModelSerializer):
     id=serializers.CharField(read_only=True)
@@ -12,10 +13,24 @@ class CustomerSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         return Customer.objects.create_user(**validated_data)
     
+
+
+
+class TrainCapacitySerializer(serializers.ModelSerializer):
+    train=serializers.CharField(read_only=True)
+    class Meta:
+        model = TrainCapacity
+        fields = "__all__"
+
+
+
 class TrainSerializer(serializers.ModelSerializer):
     class Meta:
         model = Train
-        fields = "__all__"    
+        fields = "__all__"
+
+
+  
 
 
 class TicketbookingSerializer(serializers.ModelSerializer):

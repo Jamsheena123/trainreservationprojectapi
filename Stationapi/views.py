@@ -26,8 +26,9 @@ class TrainView(ViewSet):
 
     def create(self,request,*args,**kwargs):
         serializer=TrainSerializer(data=request.data)
+        station=request.user.station
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(station=station)
             return Response(data=serializer.data)
         else:
             return Response(data=serializer.errors)
