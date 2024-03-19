@@ -117,7 +117,7 @@ class Cancellation(models.Model):
 from django.core.validators import MinValueValidator,MaxValueValidator
 
 class Feedback(models.Model):
-    customer = models.OneToOneField(Customer, on_delete=models.CASCADE,unique=True)
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
     train = models.ForeignKey(Train, on_delete=models.CASCADE)
     rating=models.PositiveIntegerField(validators=[MinValueValidator(1),MaxValueValidator(5)])
     comments = models.TextField()

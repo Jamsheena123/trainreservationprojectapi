@@ -102,7 +102,6 @@ class TrainView(ViewSet):
 
     authentication_classes=[authentication.TokenAuthentication]
     permission_classes=[permissions.IsAuthenticated]
-   
     @action(methods=["post"], detail=True)
     def book_ticket(self, request, *args, **kwargs):
         serializer = TicketbookingSerializer(data=request.data)
@@ -157,14 +156,7 @@ class TrainView(ViewSet):
             return 0
         
     
-          
-        
-    # @action(method=["post"],detail=True)    
-    # def total_capacity(self, request):
-    #     train_id = request.query_params.get("train_id")
-    #     train_obj = Train.objects.get(id=train_id)
-    #     total_capacity = TrainCapacity.objects.filter(train=train_obj).aggregate(total_capacity=Sum('available_seats'))
-    #     return Response({"total_available_seats": total_capacity['total_capacity']})  
+
         
 
     authentication_classes=[authentication.TokenAuthentication]
@@ -174,8 +166,6 @@ class TrainView(ViewSet):
         train_id = kwargs.get("pk")
         train_object = Train.objects.get(id=train_id)
         user = request.user.customer
-        
-        # Check if feedback already exists for this user and train
         existing_feedback =Feedback.objects.filter(train=train_object, customer=user).first()
         if existing_feedback:
             return Response({"message": "Feedback already added for this train"}, status=status.HTTP_400_BAD_REQUEST)
