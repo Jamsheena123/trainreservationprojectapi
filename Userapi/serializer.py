@@ -39,7 +39,16 @@ class TicketbookingSerializer(serializers.ModelSerializer):
      booking_amount=serializers.CharField(read_only=True)
      class Meta:
         model = Booking
-        fields = "__all__"       
+        fields = "__all__"  
+
+
+class TicketbookingViewSerializer(serializers.ModelSerializer):
+     user=serializers.CharField(read_only=True)
+     train_number=TrainSerializer()
+     booking_amount=serializers.CharField(read_only=True)
+     class Meta:
+        model = Booking
+        fields = "__all__"              
 
 class BookingRefundSerializer(serializers.ModelSerializer):
     class Meta:

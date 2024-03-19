@@ -5,8 +5,8 @@ from rest_framework.decorators import action
 from rest_framework import authentication
 from rest_framework import permissions
 from rest_framework.viewsets import ViewSet,ModelViewSet
-from Userapi.serializer import CustomerSerializer,TrainSerializer,TicketbookingSerializer,FeedbackSerializer,ProfileSerializer,PaymentSerializer,CancellationSerializer,TrainStatusSerializer,TrainCapacitySerializer
-from Stationapi.models import Train,Booking,Customer,Cancellation,Payment,Refund,TrainCapacity
+from Userapi.serializer import CustomerSerializer,TrainSerializer,TicketbookingSerializer,FeedbackSerializer,ProfileSerializer,PaymentSerializer,CancellationSerializer,TrainStatusSerializer,TrainCapacitySerializer,TicketbookingViewSerializer
+from Stationapi.models import Train,Booking,Customer,Cancellation,Payment,Refund,TrainCapacity,Feedback
 from django.contrib.auth import logout
 from rest_framework import status
 from django.views.decorators.csrf import csrf_exempt
@@ -61,6 +61,7 @@ class UserProfileView(APIView):
 import requests  
         
 class TrainView(ViewSet):
+
         
     def list(self, request, *args, **kwargs):
         qs = Train.objects.all()
@@ -99,9 +100,9 @@ class TrainView(ViewSet):
         
 
 
-
-    # authentication_classes=[authentication.TokenAuthentication]
-    # permission_classes=[permissions.IsAuthenticated]
+    authentication_classes=[authentication.TokenAuthentication]
+    permission_classes=[permissions.IsAuthenticated]
+   
     @action(methods=["post"], detail=True)
     def book_ticket(self, request, *args, **kwargs):
         serializer = TicketbookingSerializer(data=request.data)
@@ -164,23 +165,30 @@ class TrainView(ViewSet):
     #     train_obj = Train.objects.get(id=train_id)
     #     total_capacity = TrainCapacity.objects.filter(train=train_obj).aggregate(total_capacity=Sum('available_seats'))
     #     return Response({"total_available_seats": total_capacity['total_capacity']})  
+        
 
-    
-    @action(methods=["post"],detail=True)
-    def add_feedback(self,request,*args,**kwargs):
-        id=kwargs.get("pk")
-        object=Train.objects.get(id=id) 
-        user=request.user.customer
-        serializer=FeedbackSerializer(data=request.data)
+    authentication_classes=[authentication.TokenAuthentication]
+    permission_classes=[permissions.IsAuthenticated]
+    @action(methods=["post"], detail=True)
+    def add_feedback(self, request, *args, **kwargs):
+        train_id = kwargs.get("pk")
+        train_object = Train.objects.get(id=train_id)
+        user = request.user.customer
+        
+        # Check if feedback already exists for this user and train
+        existing_feedback =Feedback.objects.filter(train=train_object, customer=user).first()
+        if existing_feedback:
+            return Response({"message": "Feedback already added for this train"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        serializer = FeedbackSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save(customer=user,train=object)
-            return Response(data=serializer.data)
-        return Response(data=serializer.errors)   
+            serializer.save(customer=user, train=train_object)
+            return Response(data=serializer.data, status=status.HTTP_201_CREATED)
+        return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
     
 class BookTicketView(ViewSet):
     authentication_classes=[authentication.TokenAuthentication]
     permission_classes=[permissions.IsAuthenticated]
-    serializer_class=TicketbookingSerializer      
      
     
     def list(self, request, *args, **kwargs):
@@ -189,7 +197,7 @@ class BookTicketView(ViewSet):
             user_obj = Customer.objects.get(id=user_id)
             bookings = Booking.objects.filter(user=user_obj)
             if bookings.exists():
-                serializer = TicketbookingSerializer(bookings, many=True)
+                serializer = TicketbookingViewSerializer(bookings, many=True)
                 return Response(serializer.data)
             else:
                 return Response({"message": "No bookings found for the user"}, status=status.HTTP_404_NOT_FOUND)
