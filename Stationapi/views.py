@@ -117,7 +117,7 @@ class RefundView(ViewSet):
         qs=Refund.objects.get(id=id)
         qs.status="completed"
         qs.save()
-        return Response("refund given")
+        return Response({'msg':"refund given"})
     
 
 
