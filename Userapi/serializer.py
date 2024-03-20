@@ -69,7 +69,7 @@ class ProfileSerializer(serializers.ModelSerializer):
     
     class Meta:
         model=Customer
-        fields=["id","name","age","email_address","biodata","username","password"]        
+        fields=["id","name","age","email_address","biodata"]        
 
 class PaymentSerializer(serializers.ModelSerializer):
     customer=serializers.CharField(read_only=True)
