@@ -200,17 +200,17 @@ class BookTicketView(ViewSet):
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
       
-    # def destroy(self, request, *args, **kwargs):
-    #     try:
-    #         id = kwargs.get("pk")
-    #         booking_instance = Booking.objects.get(id=id)
-    #         booking_instance.booking_status = "Cancelled"
-    #         booking_instance.save()
-    #         return Response({"message": "Reservation cancelled successfully"})
-    #     except Booking.DoesNotExist:
-    #         return Response({"error": "Booking not found"}, status=404)
-    #     except Exception as e:
-    #         return Response({"error": str(e)}, status=500)
+    def destroy(self, request, *args, **kwargs):
+        try:
+            id = kwargs.get("pk")
+            booking_instance = Booking.objects.get(id=id)
+            booking_instance.booking_status = "Cancelled"
+            booking_instance.save()
+            return Response({"message": "Reservation cancelled successfully"})
+        except Booking.DoesNotExist:
+            return Response({"error": "Booking not found"}, status=404)
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
 
     @action(methods=['post'],detail=True)
     def add_payment(self,request,*args,**kwargs):
