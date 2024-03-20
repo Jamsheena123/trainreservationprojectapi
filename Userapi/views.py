@@ -199,17 +199,17 @@ class BookTicketView(ViewSet):
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
       
-    def destroy(self, request, *args, **kwargs):
-        try:
-            id = kwargs.get("pk")
-            booking_instance = Booking.objects.get(id=id)
-            booking_instance.booking_status = "Cancelled"
-            booking_instance.save()
-            return Response({"message": "Reservation cancelled successfully"})
-        except Booking.DoesNotExist:
-            return Response({"error": "Booking not found"}, status=404)
-        except Exception as e:
-            return Response({"error": str(e)}, status=500)
+    # def destroy(self, request, *args, **kwargs):
+    #     try:
+    #         id = kwargs.get("pk")
+    #         booking_instance = Booking.objects.get(id=id)
+    #         booking_instance.booking_status = "Cancelled"
+    #         booking_instance.save()
+    #         return Response({"message": "Reservation cancelled successfully"})
+    #     except Booking.DoesNotExist:
+    #         return Response({"error": "Booking not found"}, status=404)
+    #     except Exception as e:
+    #         return Response({"error": str(e)}, status=500)
 
     @action(methods=['post'],detail=True)
     def add_payment(self,request,*args,**kwargs):
@@ -229,33 +229,71 @@ class BookTicketView(ViewSet):
             return Response(data=serializer.errors)
         else:
             return Response({"error": "Booking already cancelled"}, status=404)
+        
 
     @action(methods=['post'], detail=True)
-    def refund_ticket(self, request, *args, **kwargs):
+    def cancel_and_refund(self, request, *args, **kwargs):
         try:
             booking_id = kwargs.get("pk")
             booking_instance = Booking.objects.get(id=booking_id)
 
             if booking_instance.booking_status == "Cancelled":
-                # Check if refund already exists for this booking
-                if Refund.objects.filter(booking=booking_instance).exists():
-                    return Response({"error": "Refund already processed for this booking"}, status=status.HTTP_400_BAD_REQUEST)
-                
-                refund_amount = booking_instance.booking_amount
-                refund = Refund.objects.create(
-                    status='pending',
-                    booking=booking_instance,
-                    customer=booking_instance.user,
-                    amount=refund_amount
-                )
+                return Response({"error": "Booking is already cancelled"}, status=status.HTTP_400_BAD_REQUEST)
 
-                return Response({"message": "Refund initiated successfully", "refund_id": refund.id, 'customer_name': refund.customer.name, 'refund_amount': refund.amount, 'booking_id': refund.booking.id})
-            else:
-                return Response({"error": "Booking is not cancelled, refund cannot be processed"}, status=status.HTTP_400_BAD_REQUEST)
+            # Cancel Booking
+            booking_instance.booking_status = "Cancelled"
+            booking_instance.save()
+
+            # Create Refund
+            refund_amount = booking_instance.booking_amount
+            refund = Refund.objects.create(
+                status='pending',
+                booking=booking_instance,
+                customer=booking_instance.user,
+                amount=refund_amount
+            )
+
+            return Response({
+                "message": "Booking cancelled and refund initiated successfully",
+                "refund_id": refund.id,
+                "customer_name": refund.customer.name,
+                "refund_amount": refund.amount,
+                "booking_id": refund.booking.id
+            })
+
         except Booking.DoesNotExist:
             return Response({"error": "Booking not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)   
+
+
+
+    # @action(methods=['post'], detail=True)
+    # def refund_ticket(self, request, *args, **kwargs):
+    #     try:
+    #         booking_id = kwargs.get("pk")
+    #         booking_instance = Booking.objects.get(id=booking_id)
+
+    #         if booking_instance.booking_status == "Cancelled":
+    #             # Check if refund already exists for this booking
+    #             if Refund.objects.filter(booking=booking_instance).exists():
+    #                 return Response({"error": "Refund already processed for this booking"}, status=status.HTTP_400_BAD_REQUEST)
+                
+    #             refund_amount = booking_instance.booking_amount
+    #             refund = Refund.objects.create(
+    #                 status='pending',
+    #                 booking=booking_instance,
+    #                 customer=booking_instance.user,
+    #                 amount=refund_amount
+    #             )
+
+    #             return Response({"message": "Refund initiated successfully", "refund_id": refund.id, 'customer_name': refund.customer.name, 'refund_amount': refund.amount, 'booking_id': refund.booking.id})
+    #         else:
+    #             return Response({"error": "Booking is not cancelled, refund cannot be processed"}, status=status.HTTP_400_BAD_REQUEST)
+    #     except Booking.DoesNotExist:
+    #         return Response({"error": "Booking not found"}, status=status.HTTP_404_NOT_FOUND)
+    #     except Exception as e:
+    #         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
     
 def search_trains_view(request):
