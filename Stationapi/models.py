@@ -52,7 +52,7 @@ class TrainCapacity(models.Model):
     options=(
         ('Non AC', 'Non AC'),
         ('AC' ,'AC'),
-        ("Sleep er","Sleeper"),
+        ("Sleeper","Sleeper"),
     )
     type=models.CharField(max_length=100,choices=options)
     available_seats=models.PositiveIntegerField(default=100)
