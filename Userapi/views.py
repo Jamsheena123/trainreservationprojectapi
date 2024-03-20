@@ -14,6 +14,7 @@ from django.http import JsonResponse
 from django.db.models import Sum
 from datetime import datetime
 from rest_framework.permissions import AllowAny
+import json
 
 
 
@@ -295,26 +296,28 @@ class BookTicketView(ViewSet):
     #     except Exception as e:
     #         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-    
 def search_trains_view(request):
     if request.method == 'POST':
-        search_term = request.POST.get('search')
-        if search_term:
-            url = "https://trains.p.rapidapi.com/"
-            payload = {"search": search_term}
-            headers = {
-                "content-type": "application/json",
-                "X-RapidAPI-Key": "ecaa2bd736msh28cbeae8e944acfp161787jsncfbeabcf9622",
-                "X-RapidAPI-Host": "trains.p.rapidapi.com"
-            }
-            try:
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+            search_term = data.get('search')
+            if search_term:
+                url = "https://trains.p.rapidapi.com/"
+                payload = {"search": search_term}
+                headers = {
+                    "content-type": "application/json",
+                    "X-RapidAPI-Key": "ecaa2bd736msh28cbeae8e944acfp161787jsncfbeabcf9622",
+                    "X-RapidAPI-Host": "trains.p.rapidapi.com"
+                }
                 response = requests.post(url, json=payload, headers=headers)
                 response.raise_for_status()  # Raise an exception for bad status codes
                 return JsonResponse(response.json(), safe=False)
-            except requests.exceptions.RequestException as e:
-                return JsonResponse({"error": str(e)}, status=500)
-        else:
-            return JsonResponse({"error": "Search term is missing"}, status=400)
+            else:
+                return JsonResponse({"error": "Search term is missing"}, status=400)
+        except json.JSONDecodeError as e:
+            return JsonResponse({"error": "Invalid JSON format"}, status=400)
+        except requests.exceptions.RequestException as e:
+            return JsonResponse({"error": str(e)}, status=500)
     else:
         return JsonResponse({"error": "Method not allowed"}, status=405)
 
