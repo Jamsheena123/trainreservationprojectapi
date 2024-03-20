@@ -88,7 +88,7 @@ class TrainStatusSerializer(serializers.Serializer):
     train_number = serializers.IntegerField()  
 
 
-class RefundSerializer(serializers.Serializer):
+class RefundSerializer(serializers.ModelSerializer):
     class Meta:
         model = Refund
         fields = '__all__' 

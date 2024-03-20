@@ -8,6 +8,7 @@ from django.views.decorators.csrf import csrf_exempt
 router=DefaultRouter()
 router.register("train",views.TrainView,basename="trains"),
 router.register("bookinghistory",views.BookTicketView,basename="history"),
+router.register("refunds",views.RefundView,basename="refund"),
 
 urlpatterns=[
     path("signup/",views.CustomerCreationView.as_view(),name="signup"),

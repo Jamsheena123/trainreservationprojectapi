@@ -1,6 +1,6 @@
 from django.shortcuts import render
-from Stationapi.models import Customer,Station,Train,Feedback,TrainCapacity
-from Stationapi.serializer import StationSerializer,TrainSerializer,FeedbackSerializer,TrainCapacitySerializer
+from Stationapi.models import Customer,Station,Train,Feedback,TrainCapacity,Refund
+from Stationapi.serializer import StationSerializer,TrainSerializer,FeedbackSerializer,TrainCapacitySerializer,RefundSerializer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ViewSet
@@ -92,6 +92,32 @@ class TrainCapacityView(ViewSet):
         qs=TrainCapacity.objects.all()
         serializer=TrainCapacitySerializer(qs,many=True)
         return Response(data=serializer.data)  
+    
+
+class RefundView(ViewSet):
+    authentication_classes=[authentication.TokenAuthentication]
+    permission_classes=[permissions.IsAuthenticated]
+        
+
+    def list(self,request,*args,**kwargs):
+        qs=Refund.objects.filter(status="pending")
+        serializer=RefundSerializer(qs,many=True)
+        return Response(data=serializer.data)  
+    
+
+    def retrieve(self,request,*args,**kwargs):
+        id=kwargs.get("pk")
+        qs=Refund.objects.get(id=id)
+        serializer=RefundSerializer(qs)
+        return Response(data=serializer.data)
+    
+    @action(methods=["post"],detail=True)  
+    def refund_approve(self,request,*args,**kwargs):
+        id=kwargs.get("pk")
+        qs=Refund.objects.get(id=id)
+        qs.status="completed"
+        qs.save()
+        return Response("refund given")
     
 
 

@@ -5,7 +5,7 @@ from rest_framework.decorators import action
 from rest_framework import authentication
 from rest_framework import permissions
 from rest_framework.viewsets import ViewSet,ModelViewSet
-from Userapi.serializer import CustomerSerializer,TrainSerializer,TicketbookingSerializer,FeedbackSerializer,ProfileSerializer,PaymentSerializer,CancellationSerializer,TrainStatusSerializer,TrainCapacitySerializer,TicketbookingViewSerializer
+from Userapi.serializer import CustomerSerializer,TrainSerializer,TicketbookingSerializer,FeedbackSerializer,ProfileSerializer,PaymentSerializer,CancellationSerializer,TrainStatusSerializer,TrainCapacitySerializer,TicketbookingViewSerializer,RefundSerializer
 from Stationapi.models import Train,Booking,Customer,Cancellation,Payment,Refund,TrainCapacity,Feedback
 from django.contrib.auth import logout
 from rest_framework import status
@@ -200,17 +200,17 @@ class BookTicketView(ViewSet):
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
       
-    def destroy(self, request, *args, **kwargs):
-        try:
-            id = kwargs.get("pk")
-            booking_instance = Booking.objects.get(id=id)
-            booking_instance.booking_status = "Cancelled"
-            booking_instance.save()
-            return Response({"message": "Reservation cancelled successfully"})
-        except Booking.DoesNotExist:
-            return Response({"error": "Booking not found"}, status=404)
-        except Exception as e:
-            return Response({"error": str(e)}, status=500)
+    # def destroy(self, request, *args, **kwargs):
+    #     try:
+    #         id = kwargs.get("pk")
+    #         booking_instance = Booking.objects.get(id=id)
+    #         booking_instance.booking_status = "Cancelled"
+    #         booking_instance.save()
+    #         return Response({"message": "Reservation cancelled successfully"})
+    #     except Booking.DoesNotExist:
+    #         return Response({"error": "Booking not found"}, status=404)
+    #     except Exception as e:
+    #         return Response({"error": str(e)}, status=500)
 
     @action(methods=['post'],detail=True)
     def add_payment(self,request,*args,**kwargs):
@@ -266,6 +266,8 @@ class BookTicketView(ViewSet):
             return Response({"error": "Booking not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)   
+
+
 
 
 
@@ -354,3 +356,23 @@ def search_train(request):
             train_list.append(train_info)
         return JsonResponse({'trains': train_list})
     return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+
+
+class RefundView(ViewSet):
+    authentication_classes=[authentication.TokenAuthentication]
+    permission_classes=[permissions.IsAuthenticated]
+        
+
+    def list(self,request,*args,**kwargs):
+        user=request.user.customer
+        qs=Refund.objects.filter(customer=user)
+        serializer=RefundSerializer(qs,many=True)
+        return Response(data=serializer.data)
+          
+    
+    def retrieve(self,request,*args,**kwargs):
+        id=kwargs.get("pk")
+        qs=Refund.objects.get(id=id)
+        serializer=RefundSerializer(qs)
+        return Response(data=serializer.data)
