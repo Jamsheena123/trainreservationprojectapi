@@ -62,8 +62,8 @@ class UserProfileView(APIView):
 import requests  
         
 class TrainView(ViewSet):
-
-        
+   
+ 
     def list(self, request, *args, **kwargs):
         qs = Train.objects.all()
         serializer = TrainSerializer(qs, many=True)
@@ -130,7 +130,8 @@ class TrainView(ViewSet):
         else:
             return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
+   
+   
     def check_available_seats(self, train, seat_type, reserved_seats):
         try:
             train_capacity = TrainCapacity.objects.get(train=train, type=seat_type)
@@ -356,6 +357,7 @@ def search_train(request):
             train_list.append(train_info)
         return JsonResponse({'trains': train_list})
     return JsonResponse({'error': 'Invalid request method'}, status=405)
+search_train.permission_classes = [AllowAny]
 
 
 
