@@ -9,6 +9,9 @@ router=DefaultRouter()
 router.register("train",views.TrainView,basename="trains"),
 router.register("bookinghistory",views.BookTicketView,basename="history"),
 router.register("refunds",views.RefundView,basename="refund"),
+router.register("guests",views.GuestTrainListView,basename="guest"),
+
+
 
 urlpatterns=[
     path("signup/",views.CustomerCreationView.as_view(),name="signup"),
@@ -16,6 +19,8 @@ urlpatterns=[
     path("profile/",views.UserProfileView.as_view(),name="profile"),
     path('train_status/',views.search_trains_view, name='train_status_api'),
     path('search_train/',views.search_train, name='train_search'),
+
+
 
     
 

@@ -29,6 +29,9 @@ class TrainSerializer(serializers.ModelSerializer):
         model = Train
         fields = "__all__"
 
+    
+
+
 
   
 

@@ -14,6 +14,7 @@ from django.http import JsonResponse
 from django.db.models import Sum
 from datetime import datetime
 from rest_framework.permissions import AllowAny
+from rest_framework.decorators import permission_classes
 import json
 
 
@@ -21,17 +22,32 @@ import json
 
 
 
+# class CustomerCreationView(APIView):
+#     def post(self,request,*args,**kwargs):
+#         serializer=CustomerSerializer(data=request.data)
+#         if serializer.is_valid():
+#             serializer.save(user_type="Customer")
+#             return Response(data=serializer.data)
+#         else:
+#             return Response(data=serializer.errors)
 
 
 class CustomerCreationView(APIView):
-    def post(self,request,*args,**kwargs):
-        serializer=CustomerSerializer(data=request.data)
+    def post(self, request, *args, **kwargs):
+        email = request.data.get('email_address')  # Assuming email is a unique field for customers
+        existing_customer = Customer.objects.filter(email=email).exists()
+        if existing_customer:
+            return Response({"error": "Customer with this email already exists"}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = CustomerSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save(user_type="Customer")
-            return Response(data=serializer.data)
+            return Response(data=serializer.data, status=status.HTTP_201_CREATED)
         else:
-            return Response(data=serializer.errors)
-        
+            return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
 
 class UserProfileView(APIView):
     authentication_classes = [authentication.TokenAuthentication]
@@ -61,17 +77,76 @@ class UserProfileView(APIView):
         
 import requests  
         
+
+
+class GuestTrainListView(ViewSet):
+
+    def list(self, request):
+        queryset = Train.objects.all()
+        serializer = TrainSerializer(queryset, many=True)
+        return Response(serializer.data)
+      
+    def retrieve(self, request, pk=None):
+        try:
+            train = Train.objects.get(pk=pk)
+        except Train.DoesNotExist:
+            return Response({"message": "Train not found"}, status=404)
+        
+        serializer = TrainSerializer(train)
+        return Response(serializer.data)
+  
+    
+    
+
 class TrainView(ViewSet):
+    authentication_classes=[authentication.TokenAuthentication]
+    permission_classes=[permissions.IsAuthenticated]
    
- 
     def list(self, request, *args, **kwargs):
         qs = Train.objects.all()
         serializer = TrainSerializer(qs, many=True)
         for train_data in serializer.data:
             train_capacity = Train.objects.filter(id=train_data['id']).values('traincapacity__type', 'traincapacity__available_seats')
             train_data['train_capacity'] = train_capacity
-        return Response(serializer.data)
-    
+        return Response(serializer.data)    
+
+
+
+
+class TrainView(ViewSet):
+    authentication_classes=[authentication.TokenAuthentication]
+    permission_classes=[permissions.IsAuthenticated]
+   
+    def list(self, request, *args, **kwargs):
+        qs = Train.objects.all()
+        serializer = TrainSerializer(qs, many=True)
+        for train_data in serializer.data:
+            train_capacity = Train.objects.filter(id=train_data['id']).values('traincapacity__type', 'traincapacity__available_seats')
+            train_data['train_capacity'] = train_capacity
+        return Response(serializer.data)    
+
+
+
+
+
+    @action(methods=['post'], detail=True, permission_classes=[AllowAny])  # Allow any user to access this action
+    def check_availability(self, request, *args, **kwargs):
+        train_id = kwargs.get("pk")
+        seat_type = request.data.get("type")
+
+        try:
+            train = Train.objects.get(id=train_id)
+            capacity = TrainCapacity.objects.get(train=train, type=seat_type)
+            return Response({"available_seats": capacity.available_seats}, status=status.HTTP_200_OK)
+        except Train.DoesNotExist:
+            return Response({"message": "Train not found"}, status=status.HTTP_404_NOT_FOUND)
+        except TrainCapacity.DoesNotExist:
+            return Response({"message": f"No capacity information found for {seat_type} seats in this train"},
+                            status=status.HTTP_404_NOT_FOUND)
+
+
+
+
 
     def retrieve(self,request,*args,**kwargs):
         id=kwargs.get("pk")
@@ -79,21 +154,9 @@ class TrainView(ViewSet):
         serializer=TrainSerializer(qs)
         return Response(data=serializer.data)
     
+  
+  
 
-    @action(methods=['post'],detail=True)
-    def check_availability(self, request, *args, **kwargs):
-        train_id = kwargs.get("pk")
-        seat_type = request.data.get("type")
-
-        try:
-            train = Train.objects.get(id=train_id)
-            capacity = TrainCapacity.objects.get(train=train, type=seat_type)  # Use 'type' instead of 'seat_type'
-            return Response({"available_seats": capacity.available_seats}, status=status.HTTP_200_OK)
-        except Train.DoesNotExist:
-            return Response({"message": "Train not found"}, status=status.HTTP_404_NOT_FOUND)
-        except TrainCapacity.DoesNotExist:
-            return Response({"message": f"No capacity information found for {seat_type} seats in this train"},
-                            status=status.HTTP_404_NOT_FOUND)
 
 
 
@@ -325,7 +388,7 @@ def search_trains_view(request):
         return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
-
+@permission_classes([AllowAny])
 def search_train(request):
     if request.method == 'POST':
         source = request.POST.get('source')
@@ -357,7 +420,7 @@ def search_train(request):
             train_list.append(train_info)
         return JsonResponse({'trains': train_list})
     return JsonResponse({'error': 'Invalid request method'}, status=405)
-search_train.permission_classes = [AllowAny]
+# search_train.permission_classes = [AllowAny]
 
 
 

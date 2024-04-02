@@ -42,7 +42,13 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('station/',include("Stationapi.urls")),
     path('customer/',include("Userapi.urls")),
+
+
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    path('train/', views.GuestTrainListView.as_view({'get': 'list'}), name='guest_train_list'),
+    path('train/<int:pk>/', views.GuestTrainListView.as_view({'get': 'retrieve'}), name='guest_train_detail'),
+
+
 
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
