@@ -29,12 +29,19 @@ class FeedbackSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+# class TrainCapacitySerializer(serializers.ModelSerializer):
+#     train=serializers.CharField(read_only=True)
+
+#     class Meta:
+#         model = TrainCapacity
+#         fields = "__all__"
+
 class TrainCapacitySerializer(serializers.ModelSerializer):
-    train=serializers.CharField(read_only=True)
+    train_number = serializers.CharField(source='train.train_number', read_only=True)
+
     class Meta:
         model = TrainCapacity
-        fields = "__all__"
-
+        fields = ['train_number', 'type', 'available_seats']
 
 
 class RefundSerializer(serializers.ModelSerializer):

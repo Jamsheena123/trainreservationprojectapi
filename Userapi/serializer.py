@@ -25,9 +25,11 @@ class TrainCapacitySerializer(serializers.ModelSerializer):
 
 
 class TrainSerializer(serializers.ModelSerializer):
+
+
     class Meta:
         model = Train
-        fields = "__all__"
+        exclude=('station',)
 
     
 

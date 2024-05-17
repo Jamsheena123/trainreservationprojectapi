@@ -97,7 +97,6 @@ class GuestTrainListView(ViewSet):
   
     
     
-
 class TrainView(ViewSet):
     authentication_classes=[authentication.TokenAuthentication]
     permission_classes=[permissions.IsAuthenticated]
@@ -109,9 +108,6 @@ class TrainView(ViewSet):
             train_capacity = Train.objects.filter(id=train_data['id']).values('traincapacity__type', 'traincapacity__available_seats')
             train_data['train_capacity'] = train_capacity
         return Response(serializer.data)    
-
-
-
 
 class TrainView(ViewSet):
     authentication_classes=[authentication.TokenAuthentication]
@@ -143,10 +139,6 @@ class TrainView(ViewSet):
         except TrainCapacity.DoesNotExist:
             return Response({"message": f"No capacity information found for {seat_type} seats in this train"},
                             status=status.HTTP_404_NOT_FOUND)
-
-
-
-
 
     def retrieve(self,request,*args,**kwargs):
         id=kwargs.get("pk")
@@ -303,7 +295,7 @@ class BookTicketView(ViewSet):
             booking_instance = Booking.objects.get(id=booking_id)
 
             if booking_instance.booking_status == "Cancelled":
-                return Response({"error": "Booking is already cancelled"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"msg": "Booking is already cancelled"}, status=status.HTTP_400_BAD_REQUEST)
 
             # Cancel Booking
             booking_instance.booking_status = "Cancelled"

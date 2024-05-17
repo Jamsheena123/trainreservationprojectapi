@@ -45,8 +45,8 @@ urlpatterns = [
 
 
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
-    path('train/', views.GuestTrainListView.as_view({'get': 'list'}), name='guest_train_list'),
-    path('train/<int:pk>/', views.GuestTrainListView.as_view({'get': 'retrieve'}), name='guest_train_detail'),
+    path('guest/train/', views.GuestTrainListView.as_view({'get': 'list'}), name='guest_train_list'),
+    path('guest/train/<int:pk>/', views.GuestTrainListView.as_view({'get': 'retrieve'}), name='guest_train_detail'),
 
 
 
