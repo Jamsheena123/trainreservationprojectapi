@@ -7,6 +7,9 @@ router=DefaultRouter()
 router.register("train",views.TrainView,basename="trains")
 router.register("traincapacity",views.TrainCapacityView,basename="train_seats")
 router.register("refunds",views.RefundView,basename="refund"),
+router.register("viewbooking",views.TicketBookView,basename="viewbookings"),
+
+
 
 
 

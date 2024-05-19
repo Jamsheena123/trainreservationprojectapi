@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from Stationapi.models import Customer,Station,Train,Feedback,TrainCapacity,Refund,Booking
-from Stationapi.serializer import StationSerializer,TrainSerializer,FeedbackSerializer,TrainCapacitySerializer,RefundSerializer
+from Stationapi.serializer import StationSerializer,TrainSerializer,FeedbackSerializer,TrainCapacitySerializer,RefundSerializer,TicketBookingViewSerializer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ViewSet
@@ -173,6 +173,25 @@ class RefundView(ViewSet):
         qs.save()
         return Response({'msg':"refund given"})
     
+
+        
+        
+
+class TicketBookView(ViewSet):
+    authentication_classes=[authentication.TokenAuthentication]
+    permission_classes=[permissions.IsAuthenticated]
+    serializer_class=TicketBookingViewSerializer
+
+    def list(self, request, *args, **kwargs):
+        try:
+            bookings = Booking.objects.all()
+            serializer = TicketBookingViewSerializer(bookings, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    
+
 
 
 

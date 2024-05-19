@@ -1,5 +1,6 @@
 from  rest_framework import serializers
 from Stationapi.models import Customer,Station,Train,Booking,Feedback,TrainCapacity,Refund
+from Userapi.serializer import CustomerSerializer
 
 class StationSerializer(serializers.ModelSerializer):
     id=serializers.CharField(read_only=True)
@@ -48,3 +49,12 @@ class RefundSerializer(serializers.ModelSerializer):
     class Meta:
         model = Refund
         fields = "__all__"
+        
+        
+class TicketBookingViewSerializer(serializers.ModelSerializer):
+    customer = CustomerSerializer(source='user', read_only=True)  # Assuming 'user' is the ForeignKey to Customer
+    train = TrainSerializer(read_only=True)  # Assuming 'train' is the ForeignKey to Train
+
+    class Meta:
+        model = Booking
+        fields = ['id', 'train', 'customer', 'booking_time', 'seat_type', 'reserved_seats', 'reservation_date', 'booking_amount', 'booking_status']
